@@ -1,35 +1,59 @@
-function Message({ msg }) {
-  // Generujemy awatar na podstawie nicku (z poprzedniego modułu!)
+// Zwróć uwagę na rozbudowaną listę argumentów w nawiasach klamrowych!
+function Message({ msg, mojNick, onLike, onDelete }) {
   const awatarUrl = `https://api.dicebear.com/9.x/bottts/svg?seed=${msg.author}`;
-  
-  // Formatujemy brzydką datę z serwera na np. "14:30"
   const czas = new Date(msg.timestamp).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 
+  // Sprawdzamy, czy tablica lajków istnieje i czy jest w niej nasz nick
+  const czyPolubilem = msg.likedBy && msg.likedBy.includes(mojNick);
+  
+  // Zmiana koloru w zależności od tego, czy daliśmy lajka
+  const stylPrzyciskuLajka = {
+    background: 'none',
+    border: '1px solid #ddd',
+    padding: '5px 10px',
+    borderRadius: '20px',
+    cursor: 'pointer',
+    color: czyPolubilem ? '#e84393' : '#7f8c8d',
+    fontWeight: czyPolubilem ? 'bold' : 'normal',
+    backgroundColor: czyPolubilem ? 'rgba(232, 67, 147, 0.1)' : 'transparent',
+    marginRight: '10px'
+  };
+
   return (
-    <div style={{ display: 'flex', gap: '15px', background: 'white', padding: '15px', margin: '10px 0', borderRadius: '10px', border: '1px solid #eee', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
+    <div style={{ display: 'flex', gap: '15px', background: 'white', padding: '15px', margin: '10px 0', borderRadius: '10px', border: '1px solid #eee' }}>
       
-      {/* Lewa strona: Awatar */}
       <div>
-        <img src={awatarUrl} alt="Avatar" style={{ width: '45px', height: '45px', borderRadius: '50%', backgroundColor: '#e9ecef' }} />
+        <img src={awatarUrl} alt="Avatar" style={{ width: '45px', height: '45px', borderRadius: '50%' }} />
       </div>
 
-      {/* Prawa strona: Treść */}
       <div style={{ flexGrow: 1 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
           <strong style={{ color: '#2c3e50' }}>{msg.author}</strong>
           <span style={{ fontSize: '0.85em', color: '#7f8c8d' }}>{czas}</span>
         </div>
         
-        <div style={{ wordBreak: 'break-word', color: '#333', lineHeight: '1.5' }}>
+        <div style={{ wordBreak: 'break-word', color: '#333', lineHeight: '1.5', marginBottom: '10px' }}>
           {msg.text}
         </div>
         
-        {/* Placeholder na lajki (Ożywimy go na kolejnych zajęciach!) */}
-        <div style={{ marginTop: '10px', fontSize: '0.9em', color: '#e84393', fontWeight: 'bold' }}>
-          ❤️ {msg.likes || 0}
-        </div>
-      </div>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {/* Przycisk Lajka wywołuje funkcję onLike przekazując ID tej konkretnej wiadomości */}
+          <button onClick={() => onLike(msg.id)} style={stylPrzyciskuLajka}>
+            ❤️ {msg.likes || 0}
+          </button>
 
+          {/* RENDEROWANIE WARUNKOWE: Pokaż kosz TYLKO jeśli autor to ja! */}
+          {msg.author === mojNick && (
+            <button 
+              onClick={() => onDelete(msg.id)} 
+              style={{ background: 'none', border: '1px solid #ddd', padding: '5px 10px', borderRadius: '20px', cursor: 'pointer', color: '#e74c3c' }}
+            >
+              🗑️ Usuń
+            </button>
+          )}
+        </div>
+
+      </div>
     </div>
   );
 }

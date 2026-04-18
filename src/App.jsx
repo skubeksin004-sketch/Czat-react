@@ -8,36 +8,56 @@ const API_URL = 'https://apichat.m89.pl/api/messages';
 
 function App() {
   const [wiadomosci, setWiadomosci] = useState([]);
-  
-  // NOWOŚĆ: Inicjujemy stan nickiem z LocalStorage (jeśli istnieje)
   const [mojNick, setMojNick] = useState(localStorage.getItem('shoutboxNick') || '');
 
+  // --- POBIERANIE (GET) ---
+  const pobierzDane = async () => {
+    try {
+      const odpowiedz = await fetch(API_URL);
+      const dane = await odpowiedz.json();
+      setWiadomosci(dane);
+    } catch (error) { console.error(error); }
+  };
+
   useEffect(() => {
-    const pobierzDane = async () => {
-      try {
-        const odpowiedz = await fetch(API_URL);
-        const dane = await odpowiedz.json();
-        setWiadomosci(dane);
-      } catch (error) { console.error(error); }
-    };
     pobierzDane();
     const interval = setInterval(pobierzDane, 2000);
     return () => clearInterval(interval);
   }, []);
 
+  // --- WYSYŁANIE (POST) ---
   const handleDodajWiadomosc = async (nowyTekst) => {
     try {
       await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Wysyłamy do bazy prawdziwy nick z naszego stanu!
         body: JSON.stringify({ author: mojNick, text: nowyTekst })
       });
+      pobierzDane(); // Natychmiastowe odświeżenie po wysłaniu
     } catch (error) { console.error(error); }
   };
 
-  // NOWOŚĆ: RENDEROWANIE WARUNKOWE
-  // Jeśli nick jest pusty (''), zwracamy całkowicie inny ekran (Logowanie)
+  // --- NOWOŚĆ: LAJKOWANIE (PATCH) ---
+  const handleLajkuj = async (id) => {
+    try {
+      await fetch(`${API_URL}/${id}/like`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ author: mojNick })
+      });
+      pobierzDane(); // Odśwież widok
+    } catch (error) { console.error(error); }
+  };
+
+  // --- NOWOŚĆ: USUWANIE (DELETE) ---
+  const handleUsun = async (id) => {
+    if (!window.confirm("Czy na pewno chcesz usunąć tę wiadomość?")) return;
+    try {
+      await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      pobierzDane(); // Odśwież widok
+    } catch (error) { console.error(error); }
+  };
+
   if (!mojNick) {
     return (
       <div className="app-container">
@@ -47,22 +67,24 @@ function App() {
     );
   }
 
-  // Jeśli nick jest uzupełniony, użytkownik widzi normalny Czat
   return (
     <div className="app-container">
       <Header />
-
       <div className="chat-window">
         {wiadomosci.length === 0 ? (
           <p style={{ textAlign: 'center', color: '#999' }}>Ładowanie wiadomości...</p>
         ) : (
-          // Używamy naszego nowego, czystego komponentu <Message /> !
           wiadomosci.map((msg) => (
-            <Message key={msg.id} msg={msg} />
+            <Message 
+              key={msg.id} 
+              msg={msg} 
+              mojNick={mojNick} 
+              onLike={handleLajkuj} 
+              onDelete={handleUsun} 
+            />
           ))
         )}
       </div>
-
       <MessageForm onWyslij={handleDodajWiadomosc} />
     </div>
   );
