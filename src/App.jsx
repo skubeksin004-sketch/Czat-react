@@ -1,52 +1,53 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import MessageForm from './components/MessageForm';
+import Login from './components/Login';
+import Message from './components/Message';
 
-// Adres serwera Twojego nauczyciela!
 const API_URL = 'https://apichat.m89.pl/api/messages';
 
 function App() {
   const [wiadomosci, setWiadomosci] = useState([]);
+  
+  // NOWOŚĆ: Inicjujemy stan nickiem z LocalStorage (jeśli istnieje)
+  const [mojNick, setMojNick] = useState(localStorage.getItem('shoutboxNick') || '');
 
-  // 1. POBIERANIE WIADOMOŚCI (Odpala się tylko raz dzięki pustej tablicy [])
   useEffect(() => {
     const pobierzDane = async () => {
       try {
         const odpowiedz = await fetch(API_URL);
         const dane = await odpowiedz.json();
         setWiadomosci(dane);
-      } catch (error) {
-        console.error("Błąd pobierania:", error);
-      }
+      } catch (error) { console.error(error); }
     };
-
-    // Pobierz natychmiast przy wejściu na stronę
     pobierzDane();
-
-    // Ustaw automatyczne odświeżanie co 2 sekundy (Polling)
     const interval = setInterval(pobierzDane, 2000);
-
-    // BARDZO WAŻNE: Cleanup function (Funkcja sprzątająca). 
-    // Kiedy zamkniemy komponent, React automatycznie skasuje interwał.
     return () => clearInterval(interval);
-  }, []); // <-- Pusta tablica zależności!
+  }, []);
 
-  // 2. WYSYŁANIE WIADOMOŚCI DO SERWERA
   const handleDodajWiadomosc = async (nowyTekst) => {
     try {
       await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Na razie wpisujemy 'ReactUser', w następnym module zrobimy logowanie!
-        body: JSON.stringify({ author: 'ReactUser', text: nowyTekst })
+        // Wysyłamy do bazy prawdziwy nick z naszego stanu!
+        body: JSON.stringify({ author: mojNick, text: nowyTekst })
       });
-      // (Opcjonalnie) Nie musimy tu robić setWiadomosci, bo nasz 
-      // setInterval i tak pobierze nowe wiadomości za max 2 sekundy!
-    } catch (error) {
-      console.error("Błąd wysyłania:", error);
-    }
+    } catch (error) { console.error(error); }
   };
 
+  // NOWOŚĆ: RENDEROWANIE WARUNKOWE
+  // Jeśli nick jest pusty (''), zwracamy całkowicie inny ekran (Logowanie)
+  if (!mojNick) {
+    return (
+      <div className="app-container">
+        <Header />
+        <Login onZaloguj={setMojNick} />
+      </div>
+    );
+  }
+
+  // Jeśli nick jest uzupełniony, użytkownik widzi normalny Czat
   return (
     <div className="app-container">
       <Header />
@@ -55,10 +56,9 @@ function App() {
         {wiadomosci.length === 0 ? (
           <p style={{ textAlign: 'center', color: '#999' }}>Ładowanie wiadomości...</p>
         ) : (
+          // Używamy naszego nowego, czystego komponentu <Message /> !
           wiadomosci.map((msg) => (
-            <div key={msg.id} style={{ background: 'white', padding: '15px', margin: '10px 0', borderRadius: '8px', border: '1px solid #eee' }}>
-              <strong style={{ color: '#8e44ad' }}>{msg.author}:</strong> {msg.text}
-            </div>
+            <Message key={msg.id} msg={msg} />
           ))
         )}
       </div>
