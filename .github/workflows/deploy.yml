@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 22
       - name: Instalacja bibliotek
-        run: npm install
+        run: npm install --legacy-peer-deps
       - name: Zbudowanie paczki React
         run: npm run build
       - name: Przekazanie paczki do GitHuba
