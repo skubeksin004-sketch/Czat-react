@@ -1,0 +1,44 @@
+name: Wdrożenie na GitHub Pages
+
+# Kiedy odpalić robota? Gdy wyślesz zmiany na główną gałąź!
+on:
+  push:
+    branches: [ "main", "master" ]
+
+# Uprawnienia, by robot mógł wrzucić kod na serwery stron
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  # Zadanie 1: Zbudowanie paczki plików (npm run build)
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pobranie kodu
+        uses: actions/checkout@v4
+      - name: Instalacja środowiska Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Instalacja bibliotek
+        run: npm install
+      - name: Zbudowanie paczki React
+        run: npm run build
+      - name: Przekazanie paczki do GitHuba
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  # Zadanie 2: Opublikowanie paczki jako strona WWW
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Opublikowanie na GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
