@@ -1,16 +1,21 @@
 import { useState } from 'react';
 
-// Jako argument funkcja przyjmuje 'props' (właściwości przekazane z góry)
-function MessageForm({ onWyslij }) {
-  // Tworzymy Stan: zmienną 'tekst' oraz funkcję do jej zmieniania 'setTekst'
+// NOWOŚĆ: Odbieramy nową funkcję z Propsów - onTyping
+function MessageForm({ onWyslij, onTyping }) {
   const [tekst, setTekst] = useState('');
 
+  const handleChange = (e) => {
+    setTekst(e.target.value);
+    // Kiedy pole się zmienia, uruchamiamy funkcję onTyping!
+    onTyping(); 
+  };
+
   const handleSubmit = (e) => {
-    e.preventDefault(); // Blokuje przeładowanie strony!
-    if (tekst.trim() === '') return; // Zabezpieczenie przed pustą wiadomością
+    e.preventDefault();
+    if (tekst.trim() === '') return;
     
-    onWyslij(tekst); // Odpalamy funkcję, którą dostał ten komponent z zewnątrz!
-    setTekst('');    // Po wysłaniu czyścimy okienko
+    onWyslij(tekst);
+    setTekst('');
   };
 
   return (
@@ -19,7 +24,7 @@ function MessageForm({ onWyslij }) {
         type="text" 
         placeholder="Napisz wiadomość..." 
         value={tekst} 
-        onChange={(e) => setTekst(e.target.value)} 
+        onChange={handleChange} /* <-- NOWOŚĆ: Zmienione na naszą nową funkcję! */
       />
       <button type="submit">Wyślij 🚀</button>
     </form>

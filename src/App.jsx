@@ -17,20 +17,34 @@ const socket = io(SOCKET_URL);
 
 function App() {
   const [wiadomosci, setWiadomosci] = useState([]);
-  const [mojNick, setMojNick] = useState(localStorage.getItem('shoutboxNick') || '');
+  const [ktoPisze, setKtoPisze] = useState(null);
 
-  // --- ODBIERANIE WIADOMOŚCI (WEBSOCKET) ---
   useEffect(() => {
-    // 3. Nasłuchujemy na sygnał z serwera. Kiedy wpadnie, aktualizujemy Stan!
     socket.on('chat_update', (noweWiadomosci) => {
       setWiadomosci(noweWiadomosci);
     });
 
-    // 4. Funkcja sprzątająca wyłącza nasłuch przy zamknięciu komponentu
+    let typingTimer;
+    socket.on('is_typing', (nick) => {
+      setKtoPisze(nick); // Zapisujemy nick
+      
+      // Magia UX: Czekamy 2 sekundy. Jeśli w tym czasie nie przyleci 
+      // nowy sygnał 'is_typing', uznajemy, że osoba przestała pisać.
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => {
+        setKtoPisze(null);
+      }, 2000);
+    });
+
     return () => {
       socket.off('chat_update');
+      socket.off('is_typing'); // <-- Sprzątamy po sobie!
     };
-  }, []); // <- Pusta tablica: podłączamy się tylko raz
+  }, []);
+
+  const handleTyping = () => {
+    socket.emit('typing', mojNick);
+  };
 
   // --- WYSYŁANIE (HTTP POST) ---
   const handleDodajWiadomosc = async (nowyTekst) => {
@@ -90,7 +104,12 @@ function App() {
           ))
         )}
       </div>
-      <MessageForm onWyslij={handleDodajWiadomosc} />
+      {ktoPisze && (
+        <div style={{ padding: '0 20px', fontSize: '0.85em', color: '#7f8c8d', fontStyle: 'italic', marginBottom: '5px' }}>
+          ✏️ {ktoPisze} pisze wiadomość...
+        </div>
+      )}
+      <MessageForm onWyslij={handleDodajWiadomosc} onTyping={handleTyping} />
     </div>
   );
 }
