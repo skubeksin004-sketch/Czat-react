@@ -17,6 +17,7 @@ const socket = io(SOCKET_URL);
 
 function App() {
   const [wiadomosci, setWiadomosci] = useState([]);
+  const [mojNick, setMojNick] = useState(localStorage.getItem('shoutboxNick') || '');
   const [ktoPisze, setKtoPisze] = useState(null);
 
   useEffect(() => {
